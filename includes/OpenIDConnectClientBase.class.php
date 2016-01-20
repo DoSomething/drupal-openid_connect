@@ -158,10 +158,22 @@ abstract class OpenIDConnectClientBase implements OpenIDConnectClientInterface {
    * {@inheritdoc}
    */
   public function decodeIdToken($id_token) {
-    list($headerb64, $claims64, $signatureb64) = explode('.', $id_token);
-    $claims64 = str_replace(array('-', '_'), array('+', '/'), $claims64);
-    $claims64 = base64_decode($claims64);
-    return drupal_json_decode($claims64);
+    if (openid_connect_is_jwt_library_available()) {
+      $parser = new \Lcobucci\JWT\Parser();
+      $validationData = new \Lcobucci\JWT\ValidationData(REQUEST_TIME);
+      $token = $parser->parse($id_token);
+      if (!$token->validate($validationData)) {
+        throw new \RuntimeException('Invalid ID token');
+      }
+      return $token->getClaims();
+    }
+    else {
+      list($headerb64, $claims64, $signatureb64) = explode('.', $id_token);
+
+      $claims64 = str_replace(array('-', '_'), array('+', '/'), $claims64);
+      $claims64 = base64_decode($claims64);
+      return drupal_json_decode($claims64);
+    }
   }
 
   /**

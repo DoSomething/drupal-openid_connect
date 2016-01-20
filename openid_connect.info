@@ -5,6 +5,7 @@ package = "OAuth2"
 configure = admin/config/services/openid-connect
 dependencies[] = entity
 dependencies[] = ctools
+recommends[] = composer_manager
 
 files[] = includes/OpenIDConnectClientInterface.class.php
 files[] = includes/OpenIDConnectClientBase.class.php

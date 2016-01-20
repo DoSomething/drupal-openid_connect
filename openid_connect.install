@@ -6,6 +6,22 @@
  */
 
 /**
+ * Implements hook_requirements().
+ */
+function openid_connect_requirements($phase) {
+  $requirements = array();
+
+  $requirements['openid_connect_jwt'] = array(
+    'title' => t('JWT library (lcobucci/jwt)'),
+    'value' => openid_connect_is_jwt_library_available() ? t('Installed') : t('Not installed'),
+    'description' => t('The "lcobucci/jwt" JWT library is required in order to validate ID tokens. It can be installed with Composer Manager.'),
+    'severity' => $phase === 'install' ? REQUIREMENT_ERROR : REQUIREMENT_WARNING,
+  );
+
+  return $requirements;
+}
+
+/**
  * Implements hook_uninstall().
  */
 function openid_connect_uninstall() {

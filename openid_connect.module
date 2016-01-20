@@ -882,3 +882,13 @@ function openid_connect_connect_current_user($client, $tokens) {
 
   return TRUE;
 }
+
+/**
+ * Check whether the JWT library is available.
+ *
+ * @return bool
+ *   TRUE if the library is available, FALSE otherwise.
+ */
+function openid_connect_is_jwt_library_available() {
+  return class_exists('\\Lcobucci\\JWT\\Parser');
+}
