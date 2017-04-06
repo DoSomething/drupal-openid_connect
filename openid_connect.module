@@ -201,7 +201,17 @@ function openid_connect_confirm_state_token($state_token) {
 function openid_connect_redirect_access() {
   // Confirm anti-forgery state token. This round-trip verification helps to
   // ensure that the user, not a malicious script, is making the request.
-  return !empty($_GET['state']) && openid_connect_confirm_state_token($_GET['state']);
+  $allowed = !empty($_GET['state']) && openid_connect_confirm_state_token($_GET['state']);
+
+  if (! $allowed) {
+    drupal_set_message(t('We couldn\'t verify this login request. Please try again!'), 'warning');
+    watchdog('openid_connect', 'The state token did not match: @expected, @provided', [
+      '@expected' => $_SESSION['openid_connect_state'],
+      '@provided' => $_GET['state'],
+    ]);
+  }
+
+  return $allowed;
 }
 
 /**
@@ -239,7 +249,15 @@ function openid_connect_save_userinfo($account, $userinfo) {
     $account->data['oidc_name'] = $userinfo['name'];
   }
 
-  $account_wrapper->save();
+  // Try to save the updated info to the local profile.
+  try {
+    $account_wrapper->save();
+  } catch(Exception $e) {
+    watchdog('openid_connect', 'Could not save userinfo to profile for user @id: @exception', [
+      'id' => $userinfo['id'],
+      'exception' => $e->getMessage(),
+    ]);
+  }
 
   // Fetch and save user picture from the login provider.
   if (variable_get('user_pictures') && variable_get('openid_connect_user_pictures', TRUE) && !empty($userinfo['picture'])) {
@@ -821,6 +839,10 @@ function openid_connect_complete_authorization($client, $tokens, &$destination) 
   }
 
   openid_connect_login_user($account, $destination);
+
+  // Ensure we have a fresh copy of the user in case `openid_connect_save_userinfo`
+  // left any dirty data behind in the shared $account reference.
+  $account = user_load($account->uid);
 
   module_invoke_all('openid_connect_post_authorize', $tokens, $account, $userinfo, $client->getName());
 
